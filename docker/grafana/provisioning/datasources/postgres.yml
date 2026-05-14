@@ -1,0 +1,15 @@
+apiVersion: 1
+datasources:
+  - name: PostgreSQL-DWH
+    type: postgres
+    uid: postgres-dwh
+    url: postgres-dwh:5432
+    user: news_user
+    secureJsonData:
+      password: news_pass
+    jsonData:
+      database: news_dwh
+      sslmode: disable
+      postgresVersion: 1500
+    isDefault: true
+    editable: true

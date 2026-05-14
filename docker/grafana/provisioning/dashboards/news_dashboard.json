@@ -1,0 +1,171 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": { "list": [] },
+  "description": "News Platform — Tendances, volumes, mots-clés",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": {} },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+          "format": "time_series",
+          "rawSql": "SELECT full_date AS time, SUM(nb_articles) AS \"Articles\" FROM mv_articles_par_jour WHERE full_date >= NOW() - INTERVAL '7 days' GROUP BY full_date ORDER BY full_date",
+          "refId": "A"
+        }
+      ],
+      "title": "Articles par jour (7 derniers jours)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": { "legend": { "displayMode": "list", "placement": "right" }, "pieType": "pie" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+          "format": "table",
+          "rawSql": "SELECT source, SUM(nb_articles) AS total FROM mv_articles_par_jour WHERE full_date >= NOW() - INTERVAL '7 days' GROUP BY source ORDER BY total DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Articles par source",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+          "format": "table",
+          "rawSql": "SELECT word AS \"Mot-clé\", SUM(total_freq) AS \"Fréquence\", COUNT(DISTINCT nb_articles) AS \"Articles\" FROM mv_top_keywords_jour WHERE full_date >= NOW() - INTERVAL '3 days' GROUP BY word ORDER BY \"Fréquence\" DESC LIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 20 mots-clés (3 derniers jours)",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": {} },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "options": { "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+          "format": "time_series",
+          "rawSql": "SELECT full_date AS time, source, SUM(nb_articles) AS articles FROM mv_articles_par_jour WHERE full_date >= NOW() - INTERVAL '7 days' GROUP BY full_date, source ORDER BY full_date",
+          "refId": "A"
+        }
+      ],
+      "title": "Tendances par source",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+      "fieldConfig": {
+        "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.5 }] }, "mappings": [] },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
+      "id": 5,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS total FROM fact_articles WHERE ingested_at >= NOW() - INTERVAL '24 hours'",
+          "refId": "A"
+        }
+      ],
+      "title": "Articles (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+      "fieldConfig": {
+        "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 },
+      "id": 6,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+          "format": "table",
+          "rawSql": "SELECT ROUND(AVG(quality_score)::numeric, 2) AS avg_quality FROM fact_articles WHERE ingested_at >= NOW() - INTERVAL '24 hours'",
+          "refId": "A"
+        }
+      ],
+      "title": "Score qualité moyen",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 16 },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "show": false },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-dwh" },
+          "format": "table",
+          "rawSql": "SELECT dag_name, step, success_count, failed_count, ROUND(avg_duration_sec::numeric,1) AS \"durée(s)\", last_run FROM mv_pipeline_health ORDER BY last_run DESC LIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "Santé du pipeline",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 38,
+  "tags": ["news", "etl", "monitoring"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "News Platform Dashboard",
+  "uid": "news-platform-main",
+  "version": 1
+}

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News Intelligence Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0f1117; color: #e2e8f0; }
+    .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; }
+    .card-glow { box-shadow: 0 0 20px rgba(99,102,241,0.08); }
+    .badge-ar { background: #1e3a5f; color: #60a5fa; }
+    .badge-en { background: #1a3a2a; color: #34d399; }
+    .badge-fr { background: #3a2a1a; color: #fb923c; }
+    .stat-up { color: #34d399; }
+    .stat-down { color: #f87171; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1a1d27; }
+    ::-webkit-scrollbar-thumb { background: #3d4166; border-radius: 3px; }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .fade-in { animation: fadeIn 0.4s ease-in; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .source-flag { font-size: 1.2rem; }
+    .progress-bar { height: 6px; border-radius: 3px; background: #2d3148; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- HEADER -->
+<header class="border-b border-gray-800 px-8 py-4 flex items-center justify-between sticky top-0 z-50" style="background:#0f1117ee;backdrop-filter:blur(10px)">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-lg font-bold text-white">News Intelligence Platform</h1>
+      <p class="text-xs text-gray-500">Architecture Big Data — Pipeline temps réel</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2 text-sm">
+      <span class="w-2 h-2 rounded-full bg-green-400 pulse"></span>
+      <span class="text-gray-400" id="last-update">Chargement...</span>
+    </div>
+    <button onclick="loadAll()" class="px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-80" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      ↻ Actualiser
+    </button>
+  </div>
+</header>
+
+<main class="px-8 py-6 max-w-screen-2xl mx-auto">
+
+  <!-- KPI CARDS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 fade-in">
+    <div class="card card-glow p-5">
+      <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total Articles</p>
+      <p class="text-3xl font-bold text-white" id="kpi-total">—</p>
+      <p class="text-xs text-gray-500 mt-1">collectés depuis le début</p>
+    </div>
+    <div class="card card-glow p-5">
+      <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Dernières 24h</p>
+      <p class="text-3xl font-bold stat-up" id="kpi-24h">—</p>
+      <p class="text-xs text-gray-500 mt-1">nouveaux articles</p>
+    </div>
+    <div class="card card-glow p-5">
+      <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Score Qualité</p>
+      <p class="text-3xl font-bold text-indigo-400" id="kpi-quality">—</p>
+      <p class="text-xs text-gray-500 mt-1">moyenne globale</p>
+    </div>
+    <div class="card card-glow p-5">
+      <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Sources Actives</p>
+      <p class="text-3xl font-bold text-purple-400" id="kpi-sources">—</p>
+      <p class="text-xs text-gray-500 mt-1">médias surveillés</p>
+    </div>
+  </div>
+
+  <!-- ROW 2 : Charts -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+    <!-- Articles par jour -->
+    <div class="card p-5 lg:col-span-2 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-white">Tendances — Articles collectés</h2>
+        <div class="flex gap-2">
+          <button onclick="loadTimeline(7)" id="btn-7" class="px-3 py-1 rounded text-xs font-medium bg-indigo-600 text-white">7j</button>
+          <button onclick="loadTimeline(14)" id="btn-14" class="px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors">14j</button>
+          <button onclick="loadTimeline(30)" id="btn-30" class="px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors">30j</button>
+        </div>
+      </div>
+      <canvas id="chart-timeline" height="100"></canvas>
+    </div>
+
+    <!-- Par source (donut) -->
+    <div class="card p-5 fade-in">
+      <h2 class="font-semibold text-white mb-4">Articles par source</h2>
+      <canvas id="chart-sources" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 3 : Keywords + Language + Quality -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+    <!-- Top mots-clés -->
+    <div class="card p-5 fade-in">
+      <h2 class="font-semibold text-white mb-4">🔑 Top mots-clés (3 jours)</h2>
+      <div id="keywords-list" class="space-y-2"></div>
+    </div>
+
+    <!-- Par langue -->
+    <div class="card p-5 fade-in">
+      <h2 class="font-semibold text-white mb-4">🌍 Répartition par langue</h2>
+      <canvas id="chart-language" height="200"></canvas>
+    </div>
+
+    <!-- Qualité distribution -->
+    <div class="card p-5 fade-in">
+      <h2 class="font-semibold text-white mb-4">✅ Distribution qualité</h2>
+      <canvas id="chart-quality" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- ROW 4 : Pipeline health -->
+  <div class="card p-5 mb-6 fade-in">
+    <h2 class="font-semibold text-white mb-4">⚙️ Santé du pipeline</h2>
+    <div id="pipeline-health" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+  </div>
+
+  <!-- ROW 5 : Derniers articles -->
+  <div class="card p-5 fade-in">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-white">📰 Derniers articles collectés</h2>
+      <span class="text-xs text-gray-500" id="articles-count"></span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-500 border-b border-gray-800">
+            <th class="pb-3 pr-4 font-medium">Titre</th>
+            <th class="pb-3 pr-4 font-medium">Source</th>
+            <th class="pb-3 pr-4 font-medium">Catégorie</th>
+            <th class="pb-3 pr-4 font-medium">Langue</th>
+            <th class="pb-3 pr-4 font-medium">Qualité</th>
+            <th class="pb-3 font-medium">Date</th>
+          </tr>
+        </thead>
+        <tbody id="articles-table" class="divide-y divide-gray-800"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="text-center py-6 text-xs text-gray-600 border-t border-gray-800 mt-4">
+  News Intelligence Platform — Architecture Big Data Médaillon · Kafka · MinIO · PostgreSQL · Airflow
+</footer>
+
+<script>
+const API = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
+
+const COLORS = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6'];
+const FLAGS  = { MA:'🇲🇦', GB:'🇬🇧', QA:'🇶🇦', US:'🇺🇸', FR:'🇫🇷' };
+
+let charts = {};
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ── KPIs ──────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await fetch(`${API}/api/stats`);
+    const d = await r.json();
+    document.getElementById('kpi-total').textContent   = (d.total_articles || 0).toLocaleString('fr');
+    document.getElementById('kpi-24h').textContent     = (d.articles_24h || 0).toLocaleString('fr');
+    document.getElementById('kpi-quality').textContent = d.avg_quality ? `${(d.avg_quality * 100).toFixed(0)}%` : '—';
+    document.getElementById('kpi-sources').textContent = d.active_sources || '—';
+    document.getElementById('last-update').textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr');
+  } catch(e) { console.warn('Stats:', e); showDemoStats(); }
+}
+
+function showDemoStats() {
+  document.getElementById('kpi-total').textContent   = '12 847';
+  document.getElementById('kpi-24h').textContent     = '342';
+  document.getElementById('kpi-quality').textContent = '78%';
+  document.getElementById('kpi-sources').textContent = '6';
+  document.getElementById('last-update').textContent = 'Mode démo';
+}
+
+// ── Timeline ──────────────────────────────────────────────
+async function loadTimeline(days = 7) {
+  ['btn-7','btn-14','btn-30'].forEach(id => {
+    document.getElementById(id).className = 'px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors';
+  });
+  document.getElementById(`btn-${days}`).className = 'px-3 py-1 rounded text-xs font-medium bg-indigo-600 text-white';
+
+  let labels, data;
+  try {
+    const r = await fetch(`${API}/api/articles-per-day?days=${days}`);
+    const d = await r.json();
+    labels = d.map(x => new Date(x.date).toLocaleDateString('fr', {day:'2-digit',month:'short'}));
+    data   = d.map(x => x.count);
+  } catch(e) {
+    labels = Array.from({length:days}, (_,i) => { const d=new Date(); d.setDate(d.getDate()-days+i+1); return d.toLocaleDateString('fr',{day:'2-digit',month:'short'}); });
+    data   = labels.map(() => Math.floor(Math.random()*200+100));
+  }
+
+  destroyChart('timeline');
+  const ctx = document.getElementById('chart-timeline').getContext('2d');
+  charts['timeline'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Articles',
+        data,
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99,102,241,0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#6366f1',
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2235' }, ticks: { color: '#6b7280' } },
+        y: { grid: { color: '#1e2235' }, ticks: { color: '#6b7280' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ── Sources ───────────────────────────────────────────────
+async function loadSources() {
+  let labels, data;
+  try {
+    const r = await fetch(`${API}/api/articles-per-source?days=7`);
+    const d = await r.json();
+    labels = d.map(x => `${FLAGS[x.country]||''} ${x.source}`);
+    data   = d.map(x => x.count);
+  } catch(e) {
+    labels = ['🇲🇦 Hespress','🇲🇦 Akhbarona','🇬🇧 BBC News','🇶🇦 Al Jazeera','🇬🇧 Reuters','🇺🇸 CNN'];
+    data   = [420, 310, 280, 250, 200, 180];
+  }
+
+  destroyChart('sources');
+  const ctx = document.getElementById('chart-sources').getContext('2d');
+  charts['sources'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: COLORS, borderWidth: 0, hoverOffset: 6 }] },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 }, padding: 12 } }
+      }
+    }
+  });
+}
+
+// ── Keywords ──────────────────────────────────────────────
+async function loadKeywords() {
+  let items;
+  try {
+    const r = await fetch(`${API}/api/top-keywords?days=3&limit=10`);
+    items = await r.json();
+  } catch(e) {
+    items = ['politique','maroc','économie','monde','sport','technologie','société','international','actualité','gouvernement']
+      .map((w,i) => ({ word: w, frequency: 200 - i*15 }));
+  }
+
+  const max = items[0]?.frequency || 1;
+  const container = document.getElementById('keywords-list');
+  container.innerHTML = items.map((item, i) => `
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-500 w-4">${i+1}</span>
+      <div class="flex-1">
+        <div class="flex justify-between mb-1">
+          <span class="text-sm text-gray-200 font-medium">${item.word}</span>
+          <span class="text-xs text-gray-500">${item.frequency}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${(item.frequency/max*100).toFixed(0)}%;background:${COLORS[i%COLORS.length]}"></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Language ──────────────────────────────────────────────
+async function loadLanguage() {
+  let labels, data;
+  try {
+    const r = await fetch(`${API}/api/articles-per-language?days=7`);
+    const d = await r.json();
+    const langNames = { ar:'Arabe', en:'Anglais', fr:'Français', es:'Espagnol', unknown:'Autre' };
+    labels = d.map(x => langNames[x.language] || x.language);
+    data   = d.map(x => x.count);
+  } catch(e) {
+    labels = ['Arabe','Anglais','Français'];
+    data   = [45, 40, 15];
+  }
+
+  destroyChart('language');
+  const ctx = document.getElementById('chart-language').getContext('2d');
+  charts['language'] = new Chart(ctx, {
+    type: 'pie',
+    data: { labels, datasets: [{ data, backgroundColor: ['#6366f1','#10b981','#f59e0b'], borderWidth: 0 }] },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 }, padding: 10 } } }
+    }
+  });
+}
+
+// ── Quality ───────────────────────────────────────────────
+async function loadQuality() {
+  let labels, data;
+  try {
+    const r = await fetch(`${API}/api/quality-distribution`);
+    const d = await r.json();
+    labels = d.map(x => x.level);
+    data   = d.map(x => x.count);
+  } catch(e) {
+    labels = ['Excellent','Bon','Moyen','Faible'];
+    data   = [45, 30, 18, 7];
+  }
+
+  const colors = { 'Excellent':'#10b981','Bon':'#6366f1','Moyen':'#f59e0b','Faible':'#ef4444' };
+  destroyChart('quality');
+  const ctx = document.getElementById('chart-quality').getContext('2d');
+  charts['quality'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: labels.map(l => colors[l] || '#6366f1'),
+        borderRadius: 6,
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#6b7280' } },
+        y: { grid: { color: '#1e2235' }, ticks: { color: '#6b7280' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ── Pipeline health ───────────────────────────────────────
+async function loadPipelineHealth() {
+  let items;
+  try {
+    const r = await fetch(`${API}/api/pipeline-health`);
+    items = await r.json();
+  } catch(e) {
+    items = [
+      { dag_name:'news_pipeline', step:'scraping', success_count:24, failed_count:0, avg_duration_sec:45.2, last_run:'2024-01-15T10:00:00' },
+      { dag_name:'news_pipeline', step:'etl', success_count:24, failed_count:1, avg_duration_sec:120.5, last_run:'2024-01-15T10:02:00' },
+      { dag_name:'news_quality_checks', step:'quality_checks', success_count:1, failed_count:0, avg_duration_sec:30.1, last_run:'2024-01-15T02:00:00' },
+    ];
+  }
+
+  const container = document.getElementById('pipeline-health');
+  if (!items.length) {
+    container.innerHTML = '<p class="text-gray-500 text-sm col-span-3">Aucune donnée de pipeline disponible</p>';
+    return;
+  }
+
+  container.innerHTML = items.map(item => {
+    const total = (item.success_count || 0) + (item.failed_count || 0);
+    const rate  = total > 0 ? ((item.success_count / total) * 100).toFixed(0) : 0;
+    const color = rate >= 90 ? '#10b981' : rate >= 70 ? '#f59e0b' : '#ef4444';
+    const lastRun = item.last_run ? new Date(item.last_run).toLocaleString('fr') : '—';
+    return `
+      <div class="rounded-lg p-4" style="background:#12151f;border:1px solid #2d3148">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <p class="text-sm font-medium text-white">${item.step}</p>
+            <p class="text-xs text-gray-500">${item.dag_name}</p>
+          </div>
+          <span class="text-lg font-bold" style="color:${color}">${rate}%</span>
+        </div>
+        <div class="progress-bar mb-3">
+          <div class="progress-fill" style="width:${rate}%;background:${color}"></div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-xs text-gray-500">
+          <div><span class="text-green-400 font-medium">${item.success_count}</span> succès</div>
+          <div><span class="text-red-400 font-medium">${item.failed_count}</span> erreurs</div>
+          <div><span class="text-gray-300">${item.avg_duration_sec}s</span> moy.</div>
+        </div>
+        <p class="text-xs text-gray-600 mt-2">Dernier run : ${lastRun}</p>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Articles table ────────────────────────────────────────
+async function loadArticles() {
+  let items;
+  try {
+    const r = await fetch(`${API}/api/latest-articles?limit=15`);
+    items = await r.json();
+  } catch(e) {
+    items = [
+      { title:'Maroc : nouvelles mesures économiques annoncées', source:'Hespress', category:'économie', language:'ar', quality_score:0.9, published_at:'2024-01-15T09:30:00', country:'MA' },
+      { title:'Global markets react to Fed decision', source:'Reuters', category:'business', language:'en', quality_score:0.85, published_at:'2024-01-15T08:15:00', country:'GB' },
+      { title:'Climate summit reaches new agreement', source:'BBC News', category:'world', language:'en', quality_score:0.95, published_at:'2024-01-15T07:00:00', country:'GB' },
+      { title:'Gaza ceasefire talks continue in Cairo', source:'Al Jazeera', category:'world', language:'en', quality_score:0.88, published_at:'2024-01-15T06:45:00', country:'QA' },
+      { title:'Tech giants face new EU regulations', source:'CNN', category:'technology', language:'en', quality_score:0.82, published_at:'2024-01-15T05:30:00', country:'US' },
+    ];
+  }
+
+  document.getElementById('articles-count').textContent = `${items.length} articles`;
+  const tbody = document.getElementById('articles-table');
+  const langBadge = { ar:'badge-ar', en:'badge-en', fr:'badge-fr' };
+
+  tbody.innerHTML = items.map(a => {
+    const q = a.quality_score || 0;
+    const qColor = q >= 0.8 ? '#10b981' : q >= 0.6 ? '#6366f1' : q >= 0.4 ? '#f59e0b' : '#ef4444';
+    const flag = FLAGS[a.country] || '🌐';
+    const date = a.published_at ? new Date(a.published_at).toLocaleString('fr', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    const lang = a.language || 'en';
+    const title = (a.title || '').length > 70 ? a.title.substring(0,70)+'…' : (a.title || '—');
+
+    return `
+      <tr class="hover:bg-gray-900 transition-colors">
+        <td class="py-3 pr-4 text-gray-200 max-w-xs">
+          <span title="${a.title || ''}">${title}</span>
+        </td>
+        <td class="py-3 pr-4 text-gray-400 whitespace-nowrap">${flag} ${a.source || '—'}</td>
+        <td class="py-3 pr-4">
+          <span class="px-2 py-0.5 rounded text-xs" style="background:#1e2235;color:#9ca3af">${a.category || '—'}</span>
+        </td>
+        <td class="py-3 pr-4">
+          <span class="px-2 py-0.5 rounded text-xs font-medium ${langBadge[lang]||'badge-en'}">${lang.toUpperCase()}</span>
+        </td>
+        <td class="py-3 pr-4">
+          <span class="text-sm font-semibold" style="color:${qColor}">${(q*100).toFixed(0)}%</span>
+        </td>
+        <td class="py-3 text-gray-500 text-xs whitespace-nowrap">${date}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ── Load all ──────────────────────────────────────────────
+async function loadAll() {
+  await Promise.all([
+    loadStats(),
+    loadTimeline(7),
+    loadSources(),
+    loadKeywords(),
+    loadLanguage(),
+    loadQuality(),
+    loadPipelineHealth(),
+    loadArticles(),
+  ]);
+}
+
+// Init + auto-refresh toutes les 60s
+loadAll();
+setInterval(loadAll, 60000);
+</script>
+</body>
+</html>
